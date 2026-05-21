@@ -118,7 +118,12 @@ public class Main extends Application {
         root.setAlignment(Pos.TOP_CENTER);
         Scene scene = new Scene(root, 1200, 720);
 
-        scene.getStylesheets().add(getClass().getResource("static/style/style.css").toExternalForm());
+        var cssResource = Main.class.getResource("/static/style/style.css");
+        if (cssResource == null) {
+            throw new RuntimeException("CRITICAL: style.css not found on the classpath!");
+        }
+        scene.getStylesheets().add(cssResource.toExternalForm());
+        
         stage.setScene(scene);
         stage.show();
     }
@@ -197,7 +202,7 @@ public class Main extends Application {
 
         } catch (Exception e) {
             System.err.println("Search failed: " + e.getMessage() + "\n" + e.getStackTrace());
-            System.exit(1);
+            //System.exit(1);
         }
         return musics;
     }
