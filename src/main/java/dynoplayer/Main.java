@@ -1,20 +1,18 @@
 package dynoplayer;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 
 import javafx.stage.Stage;
 
-import dynoplayer.Chrono.Chrono;
-import dynoplayer.Music.RawVid;
+import dynoplayer.lib.Music.Music;
+import dynoplayer.lib.Music.RawVid;
+import dynoplayer.lib.Util.Player;
+import dynoplayer.lib.Util.Util;
+import dynoplayer.lib.Version.Setting;
 import javafx.application.Application;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -23,6 +21,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.OverrunStyle;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -36,84 +35,133 @@ import javafx.scene.text.Font;
  */
 public class Main extends Application {
 
-
-    /**
-     * Running Vars
-     */
-
-    private final static String VERSION = "0.0.67";
-    private final static String TITLE = "Dynoplayer";
-    private final static String AUTHOR = "Dyno";
-
-    // IGNORE THE THINGS ABOVE ^^^^
-
-    TextField Query = new TextField();
-    private RawVid selectedVideo;
-    private final ArrayList<RawVid> selected = new ArrayList<>();
-
-    
-
-    public RawVid getSelectedVideo() {
-        return selectedVideo;
-    }
+    // Javafx bum variables
+    private RawVid select;
+    private final ObservableList<RawVid> raw = FXCollections.observableArrayList();
+    private final ObservableList<Music> musics = FXCollections.observableArrayList();
 
     public static void main(String[] args) throws IOException {
-        // Change this to whatever you want to search
-
+        System.setProperty("libav.gstreamer.FFmpeg", "false");
+        System.setProperty("javafx.verbose", "true");
         launch(args);
-
-        // Early debug please neglect and continue on after the */
-        /*
-         * Scanner keys = new Scanner(System.in);
-         * do{
-         * System.out.print("Enter search query: ");
-         * String content = keys.nextLine();
-         * 
-         * if(content.equals("")){
-         * break;
-         * }
-         * try{
-         * ArrayList<RawVid> vids = searchAndDisplay(content);
-         * for(int i=0; i < 10; i ++){
-         * System.out.println(Integer.toString(i + 1) + ". " + vids.get(i));
-         * }
-         * 
-         * System.out.print("Which video do you wanna download: ");
-         * content = keys.nextLine();
-         * 
-         * Download(vids.get(Integer.parseInt(content) - 1));
-         * } catch(Exception e){
-         * System.out.println(e.getStackTrace());
-         * }
-         * 
-         * } while(true);
-         */
     }
 
     @Override
     public void start(Stage stage) {
 
         // FAHHHHHHHH I GOTTA ADD A DAMN VERSION CONTROL AND CHECK SUM FOR TS
-        stage.setTitle(String.format("%s v%s | By: %s", TITLE, VERSION, AUTHOR));
+        stage.setTitle(String.format("%s v%s", Setting.name, Setting.version));
 
         // Search bar
-        this.Query.getStyleClass().add("input");
-        this.Query.setPromptText("Ex: Hot N Cold / 周杰伦");
-        this.Query.setMinWidth(300);
-        this.Query.setFont(Font.font("Noto Sans CJK SC", 16));
-        this.Query.setMinHeight(24);
+        // Query used for finding the videos on youtube
+        TextField Query = new TextField();
+        Query.getStyleClass().add("input");
+        Query.setPromptText("Ex: Hot N Cold / 周杰伦");
 
         Button searchBTN = new Button("Search!");
         searchBTN.getStyleClass().add("btn");
-        HBox searchBar = new HBox(10, this.Query, searchBTN);
-        searchBar.setAlignment(Pos.CENTER_LEFT);
+        HBox searchBar = new HBox(10, Query, searchBTN);
+        searchBar.setAlignment(Pos.TOP_CENTER);
         searchBar.setPadding(new Insets(10));
         searchBar.setFillHeight(true);
 
-        // Search Button action
-        searchBTN.setOnAction(event -> this.searchWindow(this.Query.getText()));
+        // List viewer
+        Label queue_title = new Label("Queue (Await Download)");
+        Label library = new Label("Music library");
 
-        VBox root = new VBox(20, searchBar);
+        ListView<RawVid> lv = new ListView<>();
+        lv.setPrefWidth(240);
+        lv.setItems(this.raw);
+        // Thank STACK OVERFLOW
+        lv.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(RawVid item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%s — %s", item.getName(), item.getAuthor()));
+                }
+            }
+        });
+
+        ListView<Music> mLV = new ListView<>();
+        mLV.setPrefWidth(240);
+        mLV.setItems(this.musics);
+
+        mLV.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
+            @Override
+            protected void updateItem(Music item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%s — %s", item.getName(), item.getAuthor()));
+                }
+            }
+        });
+
+        Button downloadALL = new Button("Download");
+
+        HBox Listviewers = new HBox(10, new VBox(10, queue_title, lv, downloadALL), new VBox(10, library, mLV ));
+
+        VBox left = new VBox(20, Listviewers, downloadALL);
+
+
+        // Right, the media player
+
+        // Cover
+        ImageView cover = new ImageView();
+        cover.setFitHeight(250);
+        cover.setFitWidth(250);
+        cover.setPreserveRatio(true);
+        cover.getStyleClass().add("cover");
+
+
+        // Title
+        Label currTitle = new Label("Nullptr");
+        currTitle.getStyleClass().add("player-title");
+        currTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+
+        // Author
+        Label currAuthor = new Label("Nullptr");
+        currAuthor.getStyleClass().add("player-author");
+        currAuthor.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+
+        // Volume slider
+        Slider volumeSlider = new Slider(0, 1.0, 0.5);
+        volumeSlider.setPrefWidth(80);
+        volumeSlider.getStyleClass().add("volumer-slider");
+
+        // Time slider
+        Slider timeSlider = new Slider(0, 100, 0);
+        timeSlider.setPrefWidth(200);
+        timeSlider.getStyleClass().add("time-slider");
+
+        HBox slidersRow = new HBox(15, new Label("Time: "), timeSlider, new Label("Vol:"), volumeSlider);
+        slidersRow.setAlignment(Pos.CENTER);
+
+
+        // Bum Btns
+        Button lastBTN = new Button(" < ");
+        Button playPauseBTN = new Button(" Veron =>");
+        Button skipBTN = new Button(" > ");
+
+        lastBTN.getStyleClass().add("control-btn");
+        playPauseBTN.getStyleClass().add("control-btn");
+        skipBTN.getStyleClass().add("control-btn");
+
+        HBox controlButtonsRow = new HBox(20, lastBTN, playPauseBTN, skipBTN);
+        controlButtonsRow.setAlignment(Pos.CENTER);
+
+        VBox right = new VBox(15, cover, currTitle, currAuthor, slidersRow, controlButtonsRow);
+        right.setAlignment(Pos.TOP_CENTER);
+        right.setPrefWidth(400);
+        right.setPadding(new Insets(10));
+        right.getStyleClass().add("player-panel");
+
+        HBox TopBar = new HBox(10, new Label("Very good fetcher by Dynosuars"), searchBar);
+        VBox root = new VBox(20, TopBar, new HBox(100, left, right));
         root.setPadding(new Insets(20));
         root.setAlignment(Pos.TOP_CENTER);
         Scene scene = new Scene(root, 1200, 720);
@@ -123,114 +171,165 @@ public class Main extends Application {
             throw new RuntimeException("CRITICAL: style.css not found on the classpath!");
         }
         scene.getStylesheets().add(cssResource.toExternalForm());
-        
+
+
+        /**
+         * BTN DECLARATION
+         */
+
+        // Search Button action
+        searchBTN.setOnAction(event -> {
+            String query = Query.getText();
+            new Thread(() -> {
+                ArrayList<RawVid> rawVids = Util.fetch(query);
+                javafx.application.Platform.runLater(
+                    () -> {
+                        this.searchWindow(query, rawVids);
+                    }
+                );
+            }).start();
+        });
+
+        downloadALL.setOnAction(event -> {
+
+            if (this.raw.isEmpty()) {
+                stage.setTitle("Queue is empty. Add some songs to download.");
+                return;
+            }
+
+            downloadALL.setDisable(true);
+            searchBTN.setDisable(true);
+            downloadALL.setText("Downloading queue...");
+
+            ArrayList<RawVid> snapshotToDownload = new ArrayList<>(this.raw);
+
+            new Thread(() -> {
+                for (RawVid track : snapshotToDownload) {
+                    
+                    // System.out.println("Processing: " + track.getName());
+                    
+                    Music.download(track);
+                    
+                    javafx.application.Platform.runLater(() -> {
+                        Music completedTrack = new Music(track);
+                        this.musics.add(completedTrack);
+                        this.raw.remove(track);
+                    });
+                }
+
+                javafx.application.Platform.runLater(() -> {
+                    downloadALL.setDisable(false);
+                    searchBTN.setDisable(false);
+                    downloadALL.setText("Download");
+                    stage.setTitle(String.format("%s v%s", Setting.name, Setting.version));
+                });
+
+            }).start();
+        });
+
+        playPauseBTN.setOnAction(event -> {
+            Music currentTrack = mLV.getSelectionModel().getSelectedItem();
+            if (currentTrack == null) {
+                // System.out.println("No song selected to play/pause!");
+                return;
+            }
+
+            if (Player.isPlaying()) {
+                Player.togglePlayPause(); 
+                
+                playPauseBTN.setText(" Veron =>"); 
+            } else {
+                Player.togglePlayPause();
+                playPauseBTN.setText(" Veron =<");
+            }
+        });
+
+        skipBTN.setOnAction(event -> {
+            int currentIndex = mLV.getSelectionModel().getSelectedIndex();
+
+            if (currentIndex != -1 && currentIndex < this.musics.size() - 1){
+                int nextIndex = currentIndex + 1;
+
+                mLV.getSelectionModel().select(nextIndex);
+                mLV.scrollTo(nextIndex);
+
+                Music next = mLV.getSelectionModel().getSelectedItem();
+                if(next != null) {
+                    currTitle.setText(next.getName());
+                    currAuthor.setText(next.getAuthor());
+                    playPauseBTN.setText("Veron =>");
+
+                    if (next.getIMG() != null && !next.getIMG().isEmpty()){
+                        cover.setImage(new Image(next.Url()));
+                    }
+
+                    Player.play(next, timeSlider, volumeSlider);
+                }
+            }
+        });
+
+        lastBTN.setOnAction(event -> {
+            int currentIndex = mLV.getSelectionModel().getSelectedIndex();
+
+            if (currentIndex > 0){
+                int nextIndex = currentIndex - 1;
+
+                mLV.getSelectionModel().select(nextIndex);
+                mLV.scrollTo(nextIndex);
+
+                Music next = mLV.getSelectionModel().getSelectedItem();
+                if(next != null) {
+                    currTitle.setText(next.getName());
+                    currAuthor.setText(next.getAuthor());
+                    playPauseBTN.setText(" = ");
+
+                    if (next.getIMG() != null && !next.getIMG().isEmpty()){
+                        cover.setImage(new Image(next.Url()));
+                    }
+
+                    Player.play(next, timeSlider, volumeSlider);
+                }
+            }
+        });
+
+        // Double click play
+        mLV.setOnMouseClicked(event -> {
+            if(event.getClickCount() == 2){
+                Music curr = mLV.getSelectionModel().getSelectedItem();
+
+                if(curr != null){
+                    currTitle.setText(curr.getName());
+                    currAuthor.setText(curr.getAuthor());
+                    playPauseBTN.setText(" = ");
+                }
+
+                if (curr.getIMG() != null && !curr.getIMG().isEmpty()){
+                    cover.setImage(new Image(curr.getIMG(), true));
+                }
+
+                Player.play(curr, timeSlider, volumeSlider);
+            }
+        });
+
+
+        //INIT
+        this.musics.addAll(Util.init(Setting.Cache));
+
         stage.setScene(scene);
         stage.show();
     }
 
-    public static ArrayList<RawVid> searchAndDisplay(String query) {
-        ArrayList<RawVid> musics = new ArrayList<>();
 
-        // FAHHHHHHHH I HAVE TO SEARCH THIS UP BRO. W STACK OVERFLOW
-        String ENquery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        String url = "https://www.youtube.com/results?search_query=" + ENquery;
 
-        try {
-            // Stack overflow PLEASE save me from this hot internet world wide web mess.
-            // Every bum wbesite should have a API :pray:
-            // Get the raw file, I ain't tryna deal with allat; lwk js search
-            Document doc = Jsoup.connect(url)
-                    .userAgent(
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                    // Only Chinese and English support cuz I only know these 2 languages
-                    .header("Accept-Language", "zh-CN,zh-TW;q=0.9,en-US;q=0.8,en;q=0.7")
-                    .get();
 
-            Matcher dataMatcher = Pattern.compile("var ytInitialData = (\\{.*?\\});").matcher(doc.html());
 
-            if (dataMatcher.find()) {
-                String jsonData = dataMatcher.group(1);
-                String[] videoBlocks = jsonData.split("\"videoRenderer\":\\{");
+    // So sad I can't place them into another file.
+    private void searchWindow(String query, ArrayList<RawVid> raw) {
 
-                /**
-                 * DEBUGGER
-                 * System.out.printf("%-50s | %-20s%n", "Video Title", "Uploader");
-                 * System.out.println("=".repeat(75));
-                 */
-
-                int count = 0;
-                // index 0 is all the website header garbage before the first video
-                for (int i = 1; i < videoBlocks.length && count < 20; i++) {
-                    String block = videoBlocks[i];
-
-                    // Extract Title
-                    String title = extract(block, "\"title\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"");
-
-                    // Extract Uploader
-                    String uploader = extract(block, "\"ownerText\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"") == null
-                            ? extract(block, "\"longBylineText\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"")
-                            : extract(block, "\"ownerText\":\\{\"runs\":\\[\\{\"text\":\"(.*?)\"");
-
-                    // Extract Length
-
-                    String time = extract(block, "\"lengthText\":\\{.*?\"simpleText\":\"(.*?)\"");
-                    if (time == null)
-                        continue; // How the hell does live even get into here
-                    long length = Chrono.time_cast(time);
-                    String Vidurl = "https://www.youtube.com/watch?v=" + extract(block, "\"videoId\":\"(.*?)\"");
-
-                    String IMGUrl = extract(block, "\"(https?[^\"]*\\.(?:jpg|jpeg|png|gif|webp)[^\"]*)\"");
-                    //System.out.println(IMGUrl);
-
-                    musics.add(new RawVid(length, title, uploader, Vidurl, IMGUrl));
-
-                    // Debugger display part
-                    /*
-                     * if (title != null && uploader != null) {
-                     * title = title.replace("\\u0026", "&");
-                     * uploader = uploader.replace("\\u0026", "&");
-                     * 
-                     * String displayTitle = title.length() > 47 ? title.substring(0, 44) + "..." :
-                     * title;
-                     * System.out.printf("%-50s | %-20s%n", displayTitle, uploader);
-                     * count++;
-                     * }
-                     */
-                }
-            } else
-                throw new Exception("Youtube may or may not have rate limited you. Idk how fix fr");
-
-        } catch (Exception e) {
-            System.err.println("Search failed: " + e.getMessage() + "\n" + e.getStackTrace());
-            //System.exit(1);
-        }
-        return musics;
-    }
-
-    // helper func to match the simpler regex
-    private static String extract(String text, String regex) {
-        Matcher m = Pattern.compile(regex).matcher(text);
-        return m.find() ? m.group(1) : null;
-    }
-
-    /**
-     * Helper function for now. I will replace ts later
-     * 
-     * @param vid
-     * @throws IOException
-     */
-    private static void Download(RawVid vid) throws IOException {
-        ProcessBuilder downloader = new ProcessBuilder("yt-dlp", "-x", "--audio-format", "mp3", "--audio-quality", "0",
-                "--embed-thumbnail", "--embed-metadata", "-P",
-                "/mnt/5C6E956E6E954226/Java/Shared/JavaFX/player/src/main/cache", vid.Url());
-        downloader.start();
-    }
-
-    private void searchWindow(String query) {
-
+        Stage stage = new Stage();
+        stage.setTitle(String.format("%s v%s - Search Results for: %s", Setting.name, Setting.version, query));
         // Error page
         if (query.isEmpty()) {
-            Stage stage = new Stage();
             stage.setTitle("Dynoplayer - Bum you forgot the query lil bro. Close the window");
 
             Label root = new Label("BUM LOOK @ TITLE NOW!!!!");
@@ -243,23 +342,19 @@ public class Main extends Application {
 
 
         // Main page
-        Stage stage = new Stage();
-        stage.setTitle(String.format("%s v%s - Search Results for: %s", TITLE, VERSION, query));
 
 
         // Musics
-        ArrayList<RawVid> musics = searchAndDisplay(query);
         ListView<String> resultList = new ListView<>();
         resultList.setPrefWidth(480);
         resultList.setPrefHeight(620);
 
-        // Append musics lmao fun part
-        for (RawVid curr: musics) {
+        // Append raw lmao fun part
+        for (RawVid curr: raw) {
             resultList.getItems().add(String.format("%s — %s", curr.getName(), curr.getAuthor()));
         }
 
         Label titleLabel = new Label("Select a result to preview details");
-        titleLabel.setWrapText(true);
         Label authorLabel = new Label();
 
         titleLabel.setMaxWidth(500); 
@@ -282,9 +377,9 @@ public class Main extends Application {
         // FAHHHH I HATE JAVA FX. WHY CAN'T I JS WRITE MY OWN FRONTEND BY COMPILING HTML FK TS
         resultList.getSelectionModel().selectedIndexProperty().addListener((obs, oldIndex, newIndex) -> {
             int selectedIndex = newIndex.intValue();
-            if (selectedIndex >= 0 && selectedIndex < musics.size()) {
-                this.selectedVideo = musics.get(selectedIndex);
-                RawVid selected = this.selectedVideo;
+            if (selectedIndex >= 0 && selectedIndex < raw.size()) {
+                this.select = raw.get(selectedIndex);
+                RawVid selected = this.select;
                 titleLabel.setText(selected.getName());
                 authorLabel.setText("By: " + selected.getAuthor());
                 preview.setImage(new Image(selected.getIMG()));
@@ -292,28 +387,41 @@ public class Main extends Application {
         });
 
 
-        // Bum ass BTN
-        Button BTN_ADD = new Button("Add to list");
-        Button BTN_RM = new Button("Remove from list");
-
 
         Label outputText = new Label();
+        outputText.setFont(new Font("Hack", 24));
+        outputText.setWrapText(true);
+        outputText.setMaxWidth(480);
 
-        ListView<String> selects = new ListView<>();
 
-        for (RawVid curr : this.selected){
-            selects.getItems().add(String.format("%s — %s", curr.getName(), curr.getAuthor()));
-        }
 
+        // Selected view
+        ListView<RawVid> selects = new ListView<>();
         selects.setPrefWidth(480);
         selects.setPrefHeight(240);
+        selects.setItems(this.raw);
+        selects.setCellFactory(param -> new javafx.scene.control.ListCell<>(){
+            @Override
+            protected void updateItem(RawVid item, boolean empty){
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                } else {
+                    setText(String.format("%s — %s", item.getName(), item.getAuthor()));
+                }
+            }
+        });
+
+
         ScrollPane scrollSelect = new ScrollPane(selects);
         scrollSelect.setFitToWidth(true);
         scrollSelect.setFitToHeight(true);
         
+        VBox outputs = new VBox(10, outputText, scrollSelect);
 
-        VBox outputs = new VBox(5, outputText, scrollSelect);
 
+        Button BTN_ADD = new Button("Add to list");
+        Button BTN_RM = new Button("Remove from list");
 
         HBox BTN_GROUP = new HBox(5, BTN_ADD, BTN_RM);
         VBox right = new VBox(50, detailsPane, BTN_GROUP, outputs);
@@ -330,31 +438,46 @@ public class Main extends Application {
         root.setAlignment(Pos.TOP_CENTER);
 
 
-        /**
+        /*
          * BTN DEFINITION
-         */
-
+         *
+        */
 
         BTN_ADD.setOnAction(event -> {
-            // Bro I am not writing js. Why is js so similar to java.
-            if(this.selectedVideo != null){
-                if(!this.selected.contains(this.selectedVideo)){
-                    this.selected.add(this.selectedVideo);
-                    outputText.setText(String.format("Song {%s} added.", this.selectedVideo.getName()));
+            if (this.select != null) {
+                if (!this.raw.contains(this.select)) {
+                    this.raw.add(this.select); 
+                    
+                    outputText.setText(String.format("Song {%s} added.", this.select.getName()));
                     outputText.setTextFill(Color.GREEN);
-                    selects.getItems().add(String.format("%s — %s", this.selectedVideo.getName(), this.selectedVideo.getAuthor()));
-                } else{
-                    outputText.setText(String.format("Song {%s} exists.", this.selectedVideo.getName()));
+                } else {
+                    outputText.setText(String.format("Song {%s} exists.", this.select.getName()));
                     outputText.setTextFill(Color.RED);
                 }
+            } else {
+                outputText.setText("No song selected");
+                outputText.setTextFill(Color.RED);
             }
         });
 
+        BTN_RM.setOnAction(event -> {
+            if (this.select != null) {
+                if (this.raw.contains(this.select)) {
+                    this.raw.remove(this.select); 
+                    
+                    outputText.setText(String.format("Song {%s} removed.", this.select.getName()));
+                    outputText.setTextFill(Color.GREEN);
+                } else {
+                    outputText.setText(String.format("Song {%s} doesn't EXIST in your list", this.select.getName()));
+                    outputText.setTextFill(Color.RED);
+                }
+            } else {
+                outputText.setText("No song selected to remove");
+                outputText.setTextFill(Color.RED);
+            }
+        });
 
-
-
-
-
+        // Scroll bar for the root
         ScrollPane scrollPane = new ScrollPane(root);
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);

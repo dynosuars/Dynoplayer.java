@@ -1,0 +1,78 @@
+package dynoplayer.lib.Music;
+
+import java.io.File;
+import java.io.IOException;
+
+import dynoplayer.lib.Util.Util;
+import dynoplayer.lib.Version.Setting;
+
+public class Music extends Playable{
+
+    private final String file;
+    /*
+     * Plans for the future:
+     * Add a count variable for the dice.
+     * MAYBE A MEDIA file
+     */
+    
+    public Music(RawVid video){
+        super(video);
+        this.file = video.getID() + ".wav";
+    }
+
+
+    /**
+     * The "FUNCTION" used to download video. This is static because I lowkey don't know why.
+     * @param video
+     * @return
+     */
+    public static String download(RawVid video){
+        // This command line is damn long.
+        try{
+            ProcessBuilder downloader = new ProcessBuilder(
+                "yt-dlp", "-x", 
+                "--audio-format", "wav", 
+                "--audio-quality", "0",
+                "-P",
+                Setting.download_dir,
+                "-o", video.getID() + ".%(ext)s",
+                video.Url()
+            );
+
+            downloader.redirectErrorStream(true);
+            Process process = downloader.start();
+            
+            int code = process.waitFor();
+
+            if(code == 0){
+                Util.saveCache(video);
+                return video.getID() + ".wav";
+            } else{
+                System.out.println("TWIN, YOUR SHIT IS NOT DOWNLOADED " + code);
+            }
+
+
+        } catch(IOException e){
+            System.out.println("Man what the hell, Youtube prob rate limited you. Error=" + e.getMessage());
+            e.printStackTrace();
+        } catch(InterruptedException e){
+            System.out.println("MAN WHAT THE HELL MAN I CAN'T JUST STOP YT-DLP!!!!");
+        }
+
+        return null;
+    }
+
+    /*
+     *============================
+     * Straight forward getters ||
+     *============================
+     */
+
+    public String getFile(){
+        return this.file;
+    }
+
+    public File getMusic(){
+        return new File(Setting.Cache + this.file);
+    }
+}

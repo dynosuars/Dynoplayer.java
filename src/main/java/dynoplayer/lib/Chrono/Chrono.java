@@ -1,4 +1,4 @@
-package dynoplayer.Chrono;
+package dynoplayer.lib.Chrono;
 
 
 /**
