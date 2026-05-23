@@ -23,7 +23,7 @@ YT-DLP, ... Those who knows [YT-DLP](https://github.com/yt-dlp/yt-dlp) (BIGGEST 
 
 ### Compilation from source:
 ```
-git clone [https://github.com/YOUR_USERNAME/dynoplayer.git](https://github.com/YOUR_USERNAME/dynoplayer.git)
+git clone https://github.com/dynosuars/Dynoplayer.java.git
 cd dynoplayer
 mvn clean package
 ```
