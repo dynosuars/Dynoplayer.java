@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import javafx.stage.Stage;
-
 import dynoplayer.lib.Music.Music;
 import dynoplayer.lib.Music.RawVid;
 import dynoplayer.lib.Util.Player;
@@ -30,49 +29,55 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
-/**
- * JavaFX App
- */
 public class Main extends Application {
 
-    // Javafx bum variables
+    // I wish I had pointers.
     private RawVid select;
     private final ObservableList<RawVid> raw = FXCollections.observableArrayList();
     private final ObservableList<Music> musics = FXCollections.observableArrayList();
 
+    // Implement javafx components
+    private ListView<Music> mLV;
+    private Label currTitle;
+    private Label currAuthor;
+    private ImageView cover;
+    private Button playPauseBTN;
+    private Slider timeSlider;
+    private Slider volumeSlider;
+    private Button modeBTN; 
+
     public static void main(String[] args) throws IOException {
-        System.setProperty("libav.gstreamer.FFmpeg", "false");
-        System.setProperty("javafx.verbose", "true");
+        // System.setProperty("libav.gstreamer.FFmpeg", "false");
+        // System.setProperty("javafx.verbose", "true");
         launch(args);
     }
 
     @Override
     public void start(Stage stage) {
-
-        // FAHHHHHHHH I GOTTA ADD A DAMN VERSION CONTROL AND CHECK SUM FOR TS
         stage.setTitle(String.format("%s v%s", Setting.name, Setting.version));
 
-        // Search bar
-        // Query used for finding the videos on youtube
         TextField Query = new TextField();
         Query.getStyleClass().add("input");
         Query.setPromptText("Ex: Hot N Cold / 周杰伦");
+        Query.setPrefWidth(450);
+        Query.setPrefHeight(44);
 
-        Button searchBTN = new Button("Search!");
-        searchBTN.getStyleClass().add("btn");
+        // Holy bro I AM gonna use a emoji
+        Button searchBTN = new Button("🔍");
+        searchBTN.getStyleClass().add("search-btn");
+
         HBox searchBar = new HBox(10, Query, searchBTN);
         searchBar.setAlignment(Pos.TOP_CENTER);
+        searchBar.setPadding(new Insets(15, 0, 15, 0));
         searchBar.setPadding(new Insets(10));
         searchBar.setFillHeight(true);
 
-        // List viewer
         Label queue_title = new Label("Queue (Await Download)");
         Label library = new Label("Music library");
 
         ListView<RawVid> lv = new ListView<>();
-        lv.setPrefWidth(240);
+        lv.setPrefWidth(320);
         lv.setItems(this.raw);
-        // Thank STACK OVERFLOW
         lv.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
             @Override
             protected void updateItem(RawVid item, boolean empty) {
@@ -85,10 +90,10 @@ public class Main extends Application {
             }
         });
 
-        ListView<Music> mLV = new ListView<>();
-        mLV.setPrefWidth(240);
+        // mLV, the music ListView that is SAVED
+        mLV = new ListView<>();
+        mLV.setPrefWidth(320);
         mLV.setItems(this.musics);
-
         mLV.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
             @Override
             protected void updateItem(Music item, boolean empty) {
@@ -101,69 +106,94 @@ public class Main extends Application {
             }
         });
 
-        Button downloadALL = new Button("Download");
-
-        HBox Listviewers = new HBox(10, new VBox(10, queue_title, lv, downloadALL), new VBox(10, library, mLV ));
-
-        VBox left = new VBox(20, Listviewers, downloadALL);
+        Button downloadALL = new Button("⬇");
+        downloadALL.getStyleClass().add("download-btn");
+        Button removeBTN = new Button("Remove");
 
 
-        // Right, the media player
+        VBox queue = new VBox(10, queue_title, lv, downloadALL);
+        VBox lib = new VBox(10, library, mLV);
+        HBox Listviewers = new HBox(20, queue, lib);
+        VBox left = new VBox(20, Listviewers);
 
-        // Cover
-        ImageView cover = new ImageView();
+        Listviewers.setAlignment(Pos.TOP_CENTER);
+
+
+
+        cover = new ImageView();
         cover.setFitHeight(250);
         cover.setFitWidth(250);
         cover.setPreserveRatio(true);
         cover.getStyleClass().add("cover");
 
-
-        // Title
-        Label currTitle = new Label("Nullptr");
+        currTitle = new Label("Nullptr");
         currTitle.getStyleClass().add("player-title");
         currTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 16px;");
+        currTitle.setId("currTitle");
 
-        // Author
-        Label currAuthor = new Label("Nullptr");
+        currAuthor = new Label("Nullptr");
         currAuthor.getStyleClass().add("player-author");
         currAuthor.setStyle("-fx-text-fill: gray; -fx-font-size: 14px;");
+        currAuthor.setId("currAuthor");
 
-        // Volume slider
-        Slider volumeSlider = new Slider(0, 1.0, 0.5);
-        volumeSlider.setPrefWidth(80);
+        volumeSlider = new Slider(0, 1.0, 0.5);
+        volumeSlider.setPrefWidth(100);
         volumeSlider.getStyleClass().add("volumer-slider");
 
-        // Time slider
-        Slider timeSlider = new Slider(0, 100, 0);
-        timeSlider.setPrefWidth(200);
+        timeSlider = new Slider(0, 100, 0);
+        timeSlider.setPrefWidth(250);
         timeSlider.getStyleClass().add("time-slider");
 
-        HBox slidersRow = new HBox(15, new Label("Time: "), timeSlider, new Label("Vol:"), volumeSlider);
+        Label timeTitle = new Label("Time:");
+        Label volTitle = new Label("Vol:");
+
+        timeTitle.setMinWidth(Label.USE_PREF_SIZE);
+        volTitle.setMinWidth(Label.USE_PREF_SIZE);
+
+        HBox slidersRow = new HBox(15,timeTitle, timeSlider, volTitle, volumeSlider);
         slidersRow.setAlignment(Pos.CENTER);
+        slidersRow.setPadding(new Insets(10, 0, 10, 0));
 
+        Button lastBTN = new Button(" ◀ ");
+        playPauseBTN = new Button(" ❚❚ ");
+        Button skipBTN = new Button(" ▶ ");
+        modeBTN = new Button("Mode: Linear");
 
-        // Bum Btns
-        Button lastBTN = new Button(" < ");
-        Button playPauseBTN = new Button(" Veron =>");
-        Button skipBTN = new Button(" > ");
+        
 
         lastBTN.getStyleClass().add("control-btn");
         playPauseBTN.getStyleClass().add("control-btn");
         skipBTN.getStyleClass().add("control-btn");
+        modeBTN.getStyleClass().add("control-btn");
 
-        HBox controlButtonsRow = new HBox(20, lastBTN, playPauseBTN, skipBTN);
-        controlButtonsRow.setAlignment(Pos.CENTER);
+        removeBTN.setId("delete-btn");
 
-        VBox right = new VBox(15, cover, currTitle, currAuthor, slidersRow, controlButtonsRow);
+        HBox utilRow = new HBox(15, modeBTN, removeBTN);
+        HBox controls = new HBox(15, lastBTN, playPauseBTN, skipBTN);
+
+        utilRow.setAlignment(Pos.CENTER);
+        controls.setAlignment(Pos.CENTER);
+        controls.setStyle("-fx-alignment: center; -fx-padding: 10px 0 0 0;");
+
+        VBox right = new VBox(20, cover, currTitle, currAuthor, slidersRow, controls, utilRow);
         right.setAlignment(Pos.TOP_CENTER);
-        right.setPrefWidth(400);
-        right.setPadding(new Insets(10));
+        right.setPrefWidth(480);
+        right.setMinWidth(480);
+        right.setPadding(new Insets(20));
         right.getStyleClass().add("player-panel");
 
+
+        HBox Split = new HBox(40, left, right);
         HBox TopBar = new HBox(10, new Label("Very good fetcher by Dynosuars"), searchBar);
-        VBox root = new VBox(20, TopBar, new HBox(100, left, right));
-        root.setPadding(new Insets(20));
+
+        Split.setAlignment(Pos.CENTER);
+        TopBar.setAlignment(Pos.CENTER);
+
+        VBox root = new VBox(20, TopBar, new HBox(100, TopBar, Split));
+
+        root.setPadding(new Insets(30));
         root.setAlignment(Pos.TOP_CENTER);
+        root.setStyle("-fx-padding: 20px;");
         Scene scene = new Scene(root, 1200, 720);
 
         var cssResource = Main.class.getResource("/static/style/style.css");
@@ -172,31 +202,22 @@ public class Main extends Application {
         }
         scene.getStylesheets().add(cssResource.toExternalForm());
 
-
-        /**
-         * BTN DECLARATION
+        /*
+         * EVENT HANDLERS
          */
-
-        // Search Button action
         searchBTN.setOnAction(event -> {
             String query = Query.getText();
             new Thread(() -> {
                 ArrayList<RawVid> rawVids = Util.fetch(query);
-                javafx.application.Platform.runLater(
-                    () -> {
-                        this.searchWindow(query, rawVids);
-                    }
-                );
+                javafx.application.Platform.runLater(() -> this.searchWindow(query, rawVids));
             }).start();
         });
 
         downloadALL.setOnAction(event -> {
-
             if (this.raw.isEmpty()) {
                 stage.setTitle("Queue is empty. Add some songs to download.");
                 return;
             }
-
             downloadALL.setDisable(true);
             searchBTN.setDisable(true);
             downloadALL.setText("Downloading queue...");
@@ -205,258 +226,291 @@ public class Main extends Application {
 
             new Thread(() -> {
                 for (RawVid track : snapshotToDownload) {
-                    
-                    // System.out.println("Processing: " + track.getName());
-                    
                     Music.download(track);
-                    
                     javafx.application.Platform.runLater(() -> {
                         Music completedTrack = new Music(track);
                         this.musics.add(completedTrack);
                         this.raw.remove(track);
                     });
                 }
-
                 javafx.application.Platform.runLater(() -> {
                     downloadALL.setDisable(false);
                     searchBTN.setDisable(false);
                     downloadALL.setText("Download");
                     stage.setTitle(String.format("%s v%s", Setting.name, Setting.version));
                 });
-
             }).start();
+        });
+
+        removeBTN.setOnAction(event -> {
+            Music curr = mLV.getSelectionModel().getSelectedItem();
+
+            if(curr != null){
+
+                if(Player.isPlaying() && curr.equals(mLV.getSelectionModel().getSelectedItem())){
+                    Player.togglePlayPause();
+                    currTitle.setText("Nullptr");
+                    currAuthor.setText("Nullptr");
+                    cover.setImage(null);
+                    timeSlider.setValue(0);
+                }
+
+                Util.remove(curr);
+                this.musics.remove(curr);
+            }
+        });
+
+        // Mode Switching Action
+        modeBTN.setOnAction(event -> {
+            Player.playModes newMode = Player.cycle();
+            modeBTN.setText("Mode: " + newMode.getName());
         });
 
         playPauseBTN.setOnAction(event -> {
             Music currentTrack = mLV.getSelectionModel().getSelectedItem();
-            if (currentTrack == null) {
-                // System.out.println("No song selected to play/pause!");
-                return;
-            }
+            if (currentTrack == null) return;
 
+            Player.togglePlayPause(); 
             if (Player.isPlaying()) {
-                Player.togglePlayPause(); 
-                
-                playPauseBTN.setText(" Veron =>"); 
+                playPauseBTN.setText("❚❚"); 
             } else {
-                Player.togglePlayPause();
-                playPauseBTN.setText(" Veron =<");
+                playPauseBTN.setText("►");
             }
         });
 
         skipBTN.setOnAction(event -> {
-            int currentIndex = mLV.getSelectionModel().getSelectedIndex();
-
-            if (currentIndex != -1 && currentIndex < this.musics.size() - 1){
-                int nextIndex = currentIndex + 1;
-
-                mLV.getSelectionModel().select(nextIndex);
-                mLV.scrollTo(nextIndex);
-
-                Music next = mLV.getSelectionModel().getSelectedItem();
-                if(next != null) {
-                    currTitle.setText(next.getName());
-                    currAuthor.setText(next.getAuthor());
-                    playPauseBTN.setText("Veron =>");
-
-                    if (next.getIMG() != null && !next.getIMG().isEmpty()){
-                        cover.setImage(new Image(next.Url()));
-                    }
-
-                    Player.play(next, timeSlider, volumeSlider);
-                }
-            }
+            Next();
         });
 
         lastBTN.setOnAction(event -> {
             int currentIndex = mLV.getSelectionModel().getSelectedIndex();
-
             if (currentIndex > 0){
                 int nextIndex = currentIndex - 1;
-
-                mLV.getSelectionModel().select(nextIndex);
-                mLV.scrollTo(nextIndex);
-
-                Music next = mLV.getSelectionModel().getSelectedItem();
-                if(next != null) {
-                    currTitle.setText(next.getName());
-                    currAuthor.setText(next.getAuthor());
-                    playPauseBTN.setText(" = ");
-
-                    if (next.getIMG() != null && !next.getIMG().isEmpty()){
-                        cover.setImage(new Image(next.Url()));
-                    }
-
-                    Player.play(next, timeSlider, volumeSlider);
-                }
+                playTrackByIndex(nextIndex);
             }
         });
 
-        // Double click play
         mLV.setOnMouseClicked(event -> {
             if(event.getClickCount() == 2){
-                Music curr = mLV.getSelectionModel().getSelectedItem();
-
-                if(curr != null){
-                    currTitle.setText(curr.getName());
-                    currAuthor.setText(curr.getAuthor());
-                    playPauseBTN.setText(" = ");
+                int currentIndex = mLV.getSelectionModel().getSelectedIndex();
+                if (currentIndex != -1) {
+                    playTrackByIndex(currentIndex);
                 }
-
-                if (curr.getIMG() != null && !curr.getIMG().isEmpty()){
-                    cover.setImage(new Image(curr.getIMG(), true));
-                }
-
-                Player.play(curr, timeSlider, volumeSlider);
             }
         });
 
-
-        //INIT
         this.musics.addAll(Util.init(Setting.Cache));
 
+        try {
+            var iconStream = Main.class.getResourceAsStream("/static/image/Dynoplayer.png");
+            
+            if (iconStream != null) {
+                Image appIcon = new Image(iconStream);
+                stage.getIcons().clear();
+                stage.getIcons().add(appIcon);
+                System.out.println("[SUCCESS] Dynoplayer window icon loaded smoothly.");
+            } else {
+                System.out.println("[ERROR] Could not find icon.png at /static/assets/icon.png inside the JAR.");
+            }
+        } catch (Exception e) {
+            System.out.println("[EXCEPTION] Failed to assign window icon: " + e.getMessage());
+        }
         stage.setScene(scene);
+        stage.setResizable(false);
         stage.show();
     }
 
+    /**
+     * Unified method to load layout parameters and run tracks
+     */
+    private void playTrackByIndex(int index) {
+        mLV.getSelectionModel().select(index);
+        mLV.scrollTo(index);
 
+        Music track = mLV.getSelectionModel().getSelectedItem();
+        if (track != null) {
+            currTitle.setText(track.getName());
+            currAuthor.setText(track.getAuthor());
+            playPauseBTN.setText("❚❚");
 
+            if (track.getIMG() != null && !track.getIMG().isEmpty()){
+                cover.setImage(new Image(track.getIMG(), true));
+            }
 
+            // Passes our method down to handle track transitions automatically
+            Player.play(track, timeSlider, volumeSlider, this::Next);
+        }
+    }
 
-    // So sad I can't place them into another file.
+    /**
+     * Algorithmic loop that handles playback transitions when songs end
+     */
+    private void Next() {
+        int currentIndex = mLV.getSelectionModel().getSelectedIndex();
+        int totalSongs = mLV.getItems().size();
+
+        if (totalSongs == 0 || currentIndex == -1) return;
+
+        int nextIndex = currentIndex;
+
+        switch (Player.getMode()) {
+            case single:
+                nextIndex = currentIndex;
+                break;
+            case random:
+                if (totalSongs > 1) {
+                    int rand;
+                    do {
+                        rand = (int) (Math.random() * totalSongs);
+                    } while (rand == currentIndex);
+                    nextIndex = rand;
+                }
+                break;
+            case linear:
+                nextIndex = (currentIndex + 1) % totalSongs;
+                break;
+        }
+
+        playTrackByIndex(nextIndex);
+    }
+
+    /**
+     * Secondary window. 
+     * @param query
+     * @param raw
+     */
     private void searchWindow(String query, ArrayList<RawVid> raw) {
-
         Stage stage = new Stage();
         stage.setTitle(String.format("%s v%s - Search Results for: %s", Setting.name, Setting.version, query));
-        // Error page
+        
+        // Error handling page
         if (query.isEmpty()) {
-            stage.setTitle("Dynoplayer - Bum you forgot the query lil bro. Close the window");
-
-            Label root = new Label("BUM LOOK @ TITLE NOW!!!!");
-            root.setAlignment(Pos.CENTER);
-            Scene scene = new Scene(root, 720, 600);
+            stage.setTitle("Dynoplayer - Query missing");
+            Label errorLabel = new Label("You forgot to enter a search query!");
+            errorLabel.setStyle("-fx-font-size: 18px; -fx-text-fill: #FF5555; -fx-font-weight: bold;");
+            VBox errorRoot = new VBox(errorLabel);
+            errorRoot.setStyle("-fx-background-color: #121212; -fx-alignment: center;");
+            Scene scene = new Scene(errorRoot, 500, 300);
             stage.setScene(scene);
             stage.show();
             return;
         }
 
-
-        // Main page
-
-
-        // Musics
+        // Left Side: Search results List View
         ListView<String> resultList = new ListView<>();
-        resultList.setPrefWidth(480);
-        resultList.setPrefHeight(620);
+        resultList.getStyleClass().add("search-list");
+        resultList.setPrefWidth(450);
+        resultList.setPrefHeight(640);
 
-        // Append raw lmao fun part
-        for (RawVid curr: raw) {
+        for (RawVid curr : raw) {
             resultList.getItems().add(String.format("%s — %s", curr.getName(), curr.getAuthor()));
         }
 
-        Label titleLabel = new Label("Select a result to preview details");
-        Label authorLabel = new Label();
-
-        titleLabel.setMaxWidth(500); 
+        // Right Side Components: Metadata Panel
+        Label titleLabel = new Label("Select a track to preview details");
+        titleLabel.getStyleClass().add("search-title");
+        titleLabel.setMaxWidth(480); 
         titleLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
         titleLabel.setWrapText(true);
 
-        ImageView preview = new ImageView();
+        Label authorLabel = new Label();
+        authorLabel.getStyleClass().add("search-author");
 
+        ImageView preview = new ImageView();
         preview.setFitWidth(480);
-        preview.setFitHeight(280);
+        preview.setFitHeight(270); // 16:9 widescreen scaling ratio
         preview.setPreserveRatio(true);
         preview.setSmooth(true);
+        
+        // Wrap image preview in a styled container card
+        VBox imageCard = new VBox(preview);
+        imageCard.setStyle("-fx-background-color: #1C1C1C; -fx-background-radius: 8px; -fx-alignment: center; -fx-min-height: 270px; -fx-max-height: 270px;");
 
-        VBox detailsPane = new VBox(10, titleLabel, authorLabel, preview);
+        VBox detailsPane = new VBox(8, titleLabel, authorLabel, imageCard);
         detailsPane.setAlignment(Pos.TOP_LEFT);
-        detailsPane.setPadding(new Insets(10));
-        detailsPane.setMinWidth(500);
+        detailsPane.setPrefWidth(480);
 
-
-        // FAHHHH I HATE JAVA FX. WHY CAN'T I JS WRITE MY OWN FRONTEND BY COMPILING HTML FK TS
-        resultList.getSelectionModel().selectedIndexProperty().addListener((obs, oldIndex, newIndex) -> {
-            int selectedIndex = newIndex.intValue();
-            if (selectedIndex >= 0 && selectedIndex < raw.size()) {
-                this.select = raw.get(selectedIndex);
-                RawVid selected = this.select;
-                titleLabel.setText(selected.getName());
-                authorLabel.setText("By: " + selected.getAuthor());
-                preview.setImage(new Image(selected.getIMG()));
-            }
-        });
-
-
-
-        Label outputText = new Label();
-        outputText.setFont(new Font("Hack", 24));
+        // Status update layout log
+        Label outputText = new Label("Waiting for selection...");
+        outputText.setId("status-output");
+        outputText.setTextFill(Color.GRAY);
         outputText.setWrapText(true);
         outputText.setMaxWidth(480);
 
-
-
-        // Selected view
+        // Selection Queue Preview List Box
         ListView<RawVid> selects = new ListView<>();
+        selects.getStyleClass().add("queue-preview-list");
         selects.setPrefWidth(480);
-        selects.setPrefHeight(240);
+        selects.setPrefHeight(180);
         selects.setItems(this.raw);
-        selects.setCellFactory(param -> new javafx.scene.control.ListCell<>(){
+        selects.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
             @Override
-            protected void updateItem(RawVid item, boolean empty){
+            protected void updateItem(RawVid item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
                 } else {
-                    setText(String.format("%s — %s", item.getName(), item.getAuthor()));
+                    setText(String.format("Added: %s — %s", item.getName(), item.getAuthor()));
                 }
             }
         });
 
+        VBox outputsContainer = new VBox(10, new Label("Current Download Queue Snapshot:"), selects, outputText);
 
-        ScrollPane scrollSelect = new ScrollPane(selects);
-        scrollSelect.setFitToWidth(true);
-        scrollSelect.setFitToHeight(true);
         
-        VBox outputs = new VBox(10, outputText, scrollSelect);
+        Button BTN_ADD = new Button("Append");
+        Button BTN_RM = new Button("Remove");
+        Button BTN_DONE = new Button("Done");
 
+        BTN_ADD.getStyleClass().add("control-btn");
+        BTN_RM.getStyleClass().add("control-btn");
+        BTN_DONE.getStyleClass().add("control-btn");
+        BTN_DONE.setStyle("-fx-background-color: #1A365D; -fx-text-fill: #99CCFF; -fx-min-width: 110px;");
+        
 
-        Button BTN_ADD = new Button("Add to list");
-        Button BTN_RM = new Button("Remove from list");
+        BTN_RM.setStyle("-fx-background-color: #241414; -fx-text-fill: #FF6666;");
 
-        HBox BTN_GROUP = new HBox(5, BTN_ADD, BTN_RM);
-        VBox right = new VBox(50, detailsPane, BTN_GROUP, outputs);
+        HBox BTN_GROUP = new HBox(15, BTN_ADD, BTN_RM, BTN_DONE);
+        BTN_GROUP.setAlignment(Pos.CENTER_LEFT);
 
+        VBox rightLayoutColumn = new VBox(20, detailsPane, BTN_GROUP, outputsContainer);
+        rightLayoutColumn.setPrefWidth(480);
 
-
-        // ACTUAL content
-        HBox contentBox = new HBox(20, resultList, right);
+        HBox contentBox = new HBox(30, resultList, rightLayoutColumn);
         contentBox.setAlignment(Pos.TOP_LEFT);
-        contentBox.setPadding(new Insets(20));
 
-        
-        VBox root = new VBox(20, contentBox);
-        root.setAlignment(Pos.TOP_CENTER);
-
+        VBox root = new VBox(contentBox);
+        root.getStyleClass().add("search-root");
 
         /*
-         * BTN DEFINITION
-         *
-        */
+         * UI INTERACTION HANDLERS
+         */
+        resultList.getSelectionModel().selectedIndexProperty().addListener((obs, oldIndex, newIndex) -> {
+            int selectedIndex = newIndex.intValue();
+            if (selectedIndex >= 0 && selectedIndex < raw.size()) {
+                this.select = raw.get(selectedIndex);
+                titleLabel.setText(this.select.getName());
+                authorLabel.setText("Channel: " + this.select.getAuthor());
+                
+                if (this.select.getIMG() != null && !this.select.getIMG().isEmpty()) {
+                    preview.setImage(new Image(this.select.getIMG(), true));
+                }
+            }
+        });
 
         BTN_ADD.setOnAction(event -> {
             if (this.select != null) {
                 if (!this.raw.contains(this.select)) {
                     this.raw.add(this.select); 
-                    
-                    outputText.setText(String.format("Song {%s} added.", this.select.getName()));
-                    outputText.setTextFill(Color.GREEN);
+                    outputText.setText(String.format("Added: %s", this.select.getName()));
+                    outputText.setTextFill(Color.web("#1DB954")); // Green feedback
                 } else {
-                    outputText.setText(String.format("Song {%s} exists.", this.select.getName()));
-                    outputText.setTextFill(Color.RED);
+                    outputText.setText("Already exist....");
+                    outputText.setTextFill(Color.web("#FFCC00")); // Yellow warning
                 }
             } else {
-                outputText.setText("No song selected");
-                outputText.setTextFill(Color.RED);
+                outputText.setText("PICK A SONG BRO");
+                outputText.setTextFill(Color.web("#FF5555")); // Red error
             }
         });
 
@@ -464,27 +518,38 @@ public class Main extends Application {
             if (this.select != null) {
                 if (this.raw.contains(this.select)) {
                     this.raw.remove(this.select); 
-                    
-                    outputText.setText(String.format("Song {%s} removed.", this.select.getName()));
-                    outputText.setTextFill(Color.GREEN);
+                    outputText.setText(String.format("Removed: %s", this.select.getName()));
+                    outputText.setTextFill(Color.web("#FF5555"));
                 } else {
-                    outputText.setText(String.format("Song {%s} doesn't EXIST in your list", this.select.getName()));
-                    outputText.setTextFill(Color.RED);
+                    outputText.setText("Music isn't in your download queue.");
+                    outputText.setTextFill(Color.web("#FFCC00"));
                 }
             } else {
-                outputText.setText("No song selected to remove");
-                outputText.setTextFill(Color.RED);
+                outputText.setText("Pick a music to remove.");
+                outputText.setTextFill(Color.web("#FF5555"));
             }
         });
 
-        // Scroll bar for the root
+        BTN_DONE.setOnAction(event -> {
+            stage.close();
+        });
+
         ScrollPane scrollPane = new ScrollPane(root);
         scrollPane.setFitToWidth(true);
         scrollPane.setFitToHeight(true);
+        scrollPane.setStyle("-fx-background-color: #121212; -fx-background: #121212;");
 
-        Scene scene = new Scene(scrollPane, 1200, 720);
+        Scene scene = new Scene(scrollPane, 1020, 720);
+
+        var cssResource = Main.class.getResource("/static/style/style.css");
+        if (cssResource != null) {
+            scene.getStylesheets().add(cssResource.toExternalForm());
+        }
+
         stage.setScene(scene);
+        stage.setOnHidden(e -> stage.close());
+        stage.setAlwaysOnTop(true);
+        stage.setResizable(false);
         stage.show();
     }
-
 }

@@ -17,7 +17,14 @@ import dynoplayer.lib.Music.Music;
 import dynoplayer.lib.Music.RawVid;
 import dynoplayer.lib.Version.Setting;
 
+
+
 public class Util {
+        /**
+         * The method used to FETCH youtube (API) using a QUERY.
+         * @param query<String> query the you search
+         * @return music<ArrayList<RawVid>> Returns a UNDOWNLOADED List of 
+         */
         public static ArrayList<RawVid> fetch(String query) {
         ArrayList<RawVid> musics = new ArrayList<>();
 
@@ -37,6 +44,7 @@ public class Util {
                     .get();
 
             Matcher dataMatcher = Pattern.compile("var ytInitialData = (\\{.*?\\});").matcher(doc.html());
+            
 
             if (dataMatcher.find()) {
                 String jsonData = dataMatcher.group(1);
@@ -78,7 +86,11 @@ public class Util {
         return musics;
     }
 
-
+    /**
+     * Save the Cache of a certain raw video.
+     * @apiNote I am going to turn this into MUSIC
+     * @param video
+     */
     public static void saveCache(RawVid video){
         File target = new File(Setting.Cache);
         StringBuilder builder = new StringBuilder();
@@ -126,6 +138,11 @@ public class Util {
         }
     }
 
+    /**
+     * Init function that reads from the cache 
+     * @param cache
+     * @return
+     */
     public static ArrayList<Music> init(String cache){
         ArrayList<Music> result = new ArrayList<>();
 
@@ -164,6 +181,50 @@ public class Util {
             System.out.println("Failed reading master dynamic cache file: " + e.getMessage());
         }
         return result;
+    }   
+
+    /**
+     * A util function used to delete the music 
+     * @param music
+     * @return
+     */
+    public static boolean remove(Music music){
+        if(music == null) return false;
+        boolean result = false;
+
+        if(music.getFile() != null){
+            try{
+                File file = new File(Setting.download_dir, music.getFile());
+                if(file.exists()){
+                    result = file.delete();
+                }
+            } catch( Exception e ){
+                System.out.println("Error deleting the .wav file: " + e.getMessage());
+            } 
+        }
+
+        try{
+            File Cache = new File(Setting.Cache);
+
+            if(Cache.exists()){
+                String content = Files.readString(Cache.toPath());
+                String ID = music.getID();
+
+                String regex = "\\s*" + Pattern.quote(ID) + "\\s*:\\s*\\{[^}]*\\},?\\s*\\n?";
+                String updatedContent = content.replaceAll(regex, "").trim();
+
+                updatedContent = updatedContent.replace(",\n}", "\n}").replace("{\n,", "{\n");
+
+                if(updatedContent.equals("{\n}")){
+                    updatedContent = "{\n}";
+                }
+
+                Files.writeString(Cache.toPath(), updatedContent);
+            }
+        } catch (IOException e){
+            System.out.println("FILE FAILED TO DELETE IDK WHY. E= " + e.getMessage());
+        }
+        return result;
     }
 
     /**
@@ -172,12 +233,10 @@ public class Util {
      * regex helper to find individual keys and values
      */
     private static String extractDynoProp(String innerContent, String key) {
-        // Looks for key: "value" or key: value formats cleanly
         Pattern p = Pattern.compile(key + "\\s*:\\s*\"?(.*?)\"?(?:,\\s*\\n|\\s*\\n|$)");
         Matcher m = p.matcher(innerContent);
         if (m.find()) {
             String value = m.group(1).trim();
-            // Strip any leftover edge quotes just in case
             if (value.startsWith("\"") && value.endsWith("\"")) {
                 value = value.substring(1, value.length() - 1);
             }
