@@ -11,11 +11,13 @@ Therefore, as a student, I wrote this project.
 
 ## Core Dependencies:
 
-JavaFX, the main UI carrier of this project [JavaFX(https://openjfx.io/), (Github)(https://github.com/openjdk/jfx/)
+## Core Dependencies:
+
+JavaFX, the main UI carrier of this project [JavaFX](https://openjfx.io/), [Github](https://github.com/openjdk/jfx/)
 
 JSoup, Requests but in Java [JSoup](https://jsoup.org/), [Github](https://github.com/jhy/jsoup)
 
-YT-DLP, ... Those who knows [YT-DLP](https://github.com/yt-dlp/yt-dlp) (BIGGEST HELPER)
+YT-DLP, ... Those who know [YT-DLP](https://github.com/yt-dlp/yt-dlp) (BIGGEST HELPER, THE LITERAL BACK-BONE OF THIS PROJECT!)
 
 ---
 
