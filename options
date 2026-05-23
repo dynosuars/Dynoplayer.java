@@ -1,0 +1,29 @@
+--class-path
+'/home/dynosuars/.m2/repository/org/openjfx/javafx-graphics/24/javafx-graphics-24.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-base/24/javafx-base-24.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-controls/24/javafx-controls-24.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-media/24/javafx-media-24.jar'
+--module-path
+'/home/dynosuars/.m2/repository/org/openjfx/javafx-media/24/javafx-media-24-linux.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-graphics/24/javafx-graphics-24-linux.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-base/24/javafx-base-24-linux.jar:/home/dynosuars/.m2/repository/org/jsoup/jsoup/1.17.2/jsoup-1.17.2.jar:/mnt/5C6E956E6E954226/Java/Shared/JavaFX/player/target/classes:/home/dynosuars/.m2/repository/org/openjfx/javafx-fxml/24/javafx-fxml-24-linux.jar:/home/dynosuars/.m2/repository/org/openjfx/javafx-controls/24/javafx-controls-24-linux.jar'
+--patch-module
+dynoplayer='/mnt/5C6E956E6E954226/Java/Shared/JavaFX/player/src/main/java'
+-encoding
+'UTF-8'
+-private
+--release
+17
+--module-source-path
+'/mnt/5C6E956E6E954226/Java/Shared/JavaFX/player/target/site/apidocs/src'
+-author
+-bottom
+'Copyright &#169; 2026. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/mnt/5C6E956E6E954226/Java/Shared/JavaFX/player/target/site/apidocs'
+-docencoding
+'UTF-8'
+-doctitle
+'player 1.0-SNAPSHOT API'
+-nohelp
+-use
+-version
+-windowtitle
+'player 1.0-SNAPSHOT API'

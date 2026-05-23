@@ -1,0 +1,6 @@
+module:dynoplayer
+dynoplayer
+dynoplayer.lib.Chrono
+dynoplayer.lib.Music
+dynoplayer.lib.Util
+dynoplayer.lib.Version

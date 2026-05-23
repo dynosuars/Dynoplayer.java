@@ -1,0 +1,27 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Music",
+            "request": "launch",
+            "mainClass": "dynoplayer/dynoplayer.lib.Music.Music",
+            "projectName": "player"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "dynoplayer/dynoplayer.Main",
+            "projectName": "player"
+        },
+        {
+            "type": "java",
+            "name": "Launch Dynoplayer (with IME)",
+            "request": "launch",
+            "mainClass": "dynoplayer.Main",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}
