@@ -3,7 +3,6 @@ package dynoplayer;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import javafx.stage.Stage;
 import dynoplayer.lib.Music.Music;
 import dynoplayer.lib.Music.RawVid;
 import dynoplayer.lib.Util.Player;
@@ -27,7 +26,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
+import javafx.stage.Stage;
 
 public class Main extends Application {
 
@@ -196,11 +195,7 @@ public class Main extends Application {
         root.setStyle("-fx-padding: 20px;");
         Scene scene = new Scene(root, 1200, 720);
 
-        var cssResource = Main.class.getResource("/static/style/style.css");
-        if (cssResource == null) {
-            throw new RuntimeException("CRITICAL: style.css not found on the classpath!");
-        }
-        scene.getStylesheets().add(cssResource.toExternalForm());
+        scene.getStylesheets().add(Setting.class.getResource(Setting.CSS).toExternalForm());
 
         /*
          * EVENT HANDLERS
@@ -302,15 +297,13 @@ public class Main extends Application {
         this.musics.addAll(Util.init(Setting.Cache));
 
         try {
-            var iconStream = Main.class.getResourceAsStream("/static/image/Dynoplayer.png");
-            
-            if (iconStream != null) {
-                Image appIcon = new Image(iconStream);
-                stage.getIcons().clear();
-                stage.getIcons().add(appIcon);
-                System.out.println("[SUCCESS] Dynoplayer window icon loaded smoothly.");
+            var imageStream = Setting.class.getResourceAsStream(Setting.default_img);
+            if (imageStream != null) {
+                Image backgroundImage = new Image(imageStream);
+
+            stage.getIcons().add(backgroundImage);
             } else {
-                System.out.println("[ERROR] Could not find icon.png at /static/assets/icon.png inside the JAR.");
+                System.out.println("Could not load default background asset from inside the JAR.");
             }
         } catch (Exception e) {
             System.out.println("[EXCEPTION] Failed to assign window icon: " + e.getMessage());
@@ -541,10 +534,8 @@ public class Main extends Application {
 
         Scene scene = new Scene(scrollPane, 1020, 720);
 
-        var cssResource = Main.class.getResource("/static/style/style.css");
-        if (cssResource != null) {
-            scene.getStylesheets().add(cssResource.toExternalForm());
-        }
+
+        scene.getStylesheets().add(Setting.class.getResource(Setting.CSS).toExternalForm());
 
         stage.setScene(scene);
         stage.setOnHidden(e -> stage.close());
