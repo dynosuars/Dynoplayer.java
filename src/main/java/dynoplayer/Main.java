@@ -43,7 +43,10 @@ public class Main extends Application {
     private Button playPauseBTN;
     private Slider timeSlider;
     private Slider volumeSlider;
-    private Button modeBTN; 
+    private Button modeBTN;
+    // Labels to display yt-dlp output info
+    private Label ytDlpDirLabel;
+    private Label ytDlpCodeLabel;
 
     public static void main(String[] args) throws IOException {
         // System.setProperty("libav.gstreamer.FFmpeg", "false");
@@ -77,7 +80,7 @@ public class Main extends Application {
         ListView<RawVid> lv = new ListView<>();
         lv.setPrefWidth(320);
         lv.setItems(this.raw);
-        lv.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
+        lv.setCellFactory(param -> new javafx.scene.control.ListCell<RawVid>() {
             @Override
             protected void updateItem(RawVid item, boolean empty) {
                 super.updateItem(item, empty);
@@ -93,7 +96,7 @@ public class Main extends Application {
         mLV = new ListView<>();
         mLV.setPrefWidth(320);
         mLV.setItems(this.musics);
-        mLV.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
+        mLV.setCellFactory(param -> new javafx.scene.control.ListCell<Music>() {
             @Override
             protected void updateItem(Music item, boolean empty) {
                 super.updateItem(item, empty);
@@ -109,15 +112,12 @@ public class Main extends Application {
         downloadALL.getStyleClass().add("download-btn");
         Button removeBTN = new Button("Remove");
 
-
         VBox queue = new VBox(10, queue_title, lv, downloadALL);
         VBox lib = new VBox(10, library, mLV);
         HBox Listviewers = new HBox(20, queue, lib);
         VBox left = new VBox(20, Listviewers);
 
         Listviewers.setAlignment(Pos.TOP_CENTER);
-
-
 
         cover = new ImageView();
         cover.setFitHeight(250);
@@ -149,7 +149,7 @@ public class Main extends Application {
         timeTitle.setMinWidth(Label.USE_PREF_SIZE);
         volTitle.setMinWidth(Label.USE_PREF_SIZE);
 
-        HBox slidersRow = new HBox(15,timeTitle, timeSlider, volTitle, volumeSlider);
+        HBox slidersRow = new HBox(15, timeTitle, timeSlider, volTitle, volumeSlider);
         slidersRow.setAlignment(Pos.CENTER);
         slidersRow.setPadding(new Insets(10, 0, 10, 0));
 
@@ -157,8 +157,6 @@ public class Main extends Application {
         playPauseBTN = new Button(" ❚❚ ");
         Button skipBTN = new Button(" ▶ ");
         modeBTN = new Button("Mode: Linear");
-
-        
 
         lastBTN.getStyleClass().add("control-btn");
         playPauseBTN.getStyleClass().add("control-btn");
@@ -169,18 +167,31 @@ public class Main extends Application {
 
         HBox utilRow = new HBox(15, modeBTN, removeBTN);
         HBox controls = new HBox(15, lastBTN, playPauseBTN, skipBTN);
+        HBox ytInfoRow = new HBox(10);
 
         utilRow.setAlignment(Pos.CENTER);
         controls.setAlignment(Pos.CENTER);
         controls.setStyle("-fx-alignment: center; -fx-padding: 10px 0 0 0;");
 
-        VBox right = new VBox(20, cover, currTitle, currAuthor, slidersRow, controls, utilRow);
+        ytDlpDirLabel = new Label("yt-dlp dir: " + Setting.download_dir);
+        ytDlpDirLabel.setTextFill(Color.GRAY);
+        ytDlpDirLabel.setWrapText(true);
+        ytDlpDirLabel.setMaxWidth(220);
+
+        ytDlpCodeLabel = new Label("yt-dlp exit: N/A");
+        ytDlpCodeLabel.setTextFill(Color.GRAY);
+        ytDlpCodeLabel.setWrapText(true);
+        ytDlpCodeLabel.setMaxWidth(220);
+
+        ytInfoRow.getChildren().addAll(ytDlpDirLabel, ytDlpCodeLabel);
+        ytInfoRow.setAlignment(Pos.CENTER);
+
+        VBox right = new VBox(20, cover, currTitle, currAuthor, slidersRow, controls, utilRow, ytInfoRow);
         right.setAlignment(Pos.TOP_CENTER);
         right.setPrefWidth(480);
         right.setMinWidth(480);
         right.setPadding(new Insets(20));
         right.getStyleClass().add("player-panel");
-
 
         HBox Split = new HBox(40, left, right);
         HBox TopBar = new HBox(10, new Label("Very good fetcher by Dynosuars"), searchBar);
@@ -221,11 +232,21 @@ public class Main extends Application {
 
             new Thread(() -> {
                 for (RawVid track : snapshotToDownload) {
-                    Music.download(track);
+                    int code = Music.download(track);
                     javafx.application.Platform.runLater(() -> {
-                        Music completedTrack = new Music(track);
-                        this.musics.add(completedTrack);
-                        this.raw.remove(track);
+                        if (code == 0) {
+                            Music completedTrack = new Music(track);
+                            this.musics.add(completedTrack);
+                            this.raw.remove(track);
+                        }
+
+                        if (this.ytDlpDirLabel != null) {
+                            this.ytDlpDirLabel.setText("yt-dlp dir: " + dynoplayer.lib.Version.Setting.download_dir);
+                        }
+                        if (this.ytDlpCodeLabel != null) {
+                            this.ytDlpCodeLabel.setText("yt-dlp exit: " + code);
+                            this.ytDlpCodeLabel.setTextFill(code == 0 ? Color.web("#1DB954") : Color.web("#FF6666"));
+                        }
                     });
                 }
                 javafx.application.Platform.runLater(() -> {
@@ -240,9 +261,9 @@ public class Main extends Application {
         removeBTN.setOnAction(event -> {
             Music curr = mLV.getSelectionModel().getSelectedItem();
 
-            if(curr != null){
+            if (curr != null) {
 
-                if(Player.isPlaying() && curr.equals(mLV.getSelectionModel().getSelectedItem())){
+                if (Player.isPlaying() && curr.equals(mLV.getSelectionModel().getSelectedItem())) {
                     Player.togglePlayPause();
                     currTitle.setText("Nullptr");
                     currAuthor.setText("Nullptr");
@@ -263,11 +284,12 @@ public class Main extends Application {
 
         playPauseBTN.setOnAction(event -> {
             Music currentTrack = mLV.getSelectionModel().getSelectedItem();
-            if (currentTrack == null) return;
+            if (currentTrack == null)
+                return;
 
-            Player.togglePlayPause(); 
+            Player.togglePlayPause();
             if (Player.isPlaying()) {
-                playPauseBTN.setText("❚❚"); 
+                playPauseBTN.setText("❚❚");
             } else {
                 playPauseBTN.setText("►");
             }
@@ -279,14 +301,14 @@ public class Main extends Application {
 
         lastBTN.setOnAction(event -> {
             int currentIndex = mLV.getSelectionModel().getSelectedIndex();
-            if (currentIndex > 0){
+            if (currentIndex > 0) {
                 int nextIndex = currentIndex - 1;
                 playTrackByIndex(nextIndex);
             }
         });
 
         mLV.setOnMouseClicked(event -> {
-            if(event.getClickCount() == 2){
+            if (event.getClickCount() == 2) {
                 int currentIndex = mLV.getSelectionModel().getSelectedIndex();
                 if (currentIndex != -1) {
                     playTrackByIndex(currentIndex);
@@ -301,7 +323,7 @@ public class Main extends Application {
             if (imageStream != null) {
                 Image backgroundImage = new Image(imageStream);
 
-            stage.getIcons().add(backgroundImage);
+                stage.getIcons().add(backgroundImage);
             } else {
                 System.out.println("Could not load default background asset from inside the JAR.");
             }
@@ -326,7 +348,7 @@ public class Main extends Application {
             currAuthor.setText(track.getAuthor());
             playPauseBTN.setText("❚❚");
 
-            if (track.getIMG() != null && !track.getIMG().isEmpty()){
+            if (track.getIMG() != null && !track.getIMG().isEmpty()) {
                 cover.setImage(new Image(track.getIMG(), true));
             }
 
@@ -342,7 +364,8 @@ public class Main extends Application {
         int currentIndex = mLV.getSelectionModel().getSelectedIndex();
         int totalSongs = mLV.getItems().size();
 
-        if (totalSongs == 0 || currentIndex == -1) return;
+        if (totalSongs == 0 || currentIndex == -1)
+            return;
 
         int nextIndex = currentIndex;
 
@@ -368,14 +391,15 @@ public class Main extends Application {
     }
 
     /**
-     * Secondary window. 
+     * Secondary window.
+     * 
      * @param query
      * @param raw
      */
     private void searchWindow(String query, ArrayList<RawVid> raw) {
         Stage stage = new Stage();
         stage.setTitle(String.format("%s v%s - Search Results for: %s", Setting.name, Setting.version, query));
-        
+
         // Error handling page
         if (query.isEmpty()) {
             stage.setTitle("Dynoplayer - Query missing");
@@ -402,7 +426,7 @@ public class Main extends Application {
         // Right Side Components: Metadata Panel
         Label titleLabel = new Label("Select a track to preview details");
         titleLabel.getStyleClass().add("search-title");
-        titleLabel.setMaxWidth(480); 
+        titleLabel.setMaxWidth(480);
         titleLabel.setTextOverrun(OverrunStyle.ELLIPSIS);
         titleLabel.setWrapText(true);
 
@@ -414,10 +438,11 @@ public class Main extends Application {
         preview.setFitHeight(270); // 16:9 widescreen scaling ratio
         preview.setPreserveRatio(true);
         preview.setSmooth(true);
-        
+
         // Wrap image preview in a styled container card
         VBox imageCard = new VBox(preview);
-        imageCard.setStyle("-fx-background-color: #1C1C1C; -fx-background-radius: 8px; -fx-alignment: center; -fx-min-height: 270px; -fx-max-height: 270px;");
+        imageCard.setStyle(
+                "-fx-background-color: #1C1C1C; -fx-background-radius: 8px; -fx-alignment: center; -fx-min-height: 270px; -fx-max-height: 270px;");
 
         VBox detailsPane = new VBox(8, titleLabel, authorLabel, imageCard);
         detailsPane.setAlignment(Pos.TOP_LEFT);
@@ -436,7 +461,7 @@ public class Main extends Application {
         selects.setPrefWidth(480);
         selects.setPrefHeight(180);
         selects.setItems(this.raw);
-        selects.setCellFactory(param -> new javafx.scene.control.ListCell<>() {
+        selects.setCellFactory(param -> new javafx.scene.control.ListCell<RawVid>() {
             @Override
             protected void updateItem(RawVid item, boolean empty) {
                 super.updateItem(item, empty);
@@ -448,9 +473,11 @@ public class Main extends Application {
             }
         });
 
-        VBox outputsContainer = new VBox(10, new Label("Current Download Queue Snapshot:"), selects, outputText);
+        VBox ytInfoRow = new VBox(10, ytDlpDirLabel, ytDlpCodeLabel);
+        ytInfoRow.setAlignment(Pos.CENTER_LEFT);
+        VBox outputsContainer = new VBox(10, new Label("Current Download Queue Snapshot:"), selects, outputText,
+                ytInfoRow);
 
-        
         Button BTN_ADD = new Button("Append");
         Button BTN_RM = new Button("Remove");
         Button BTN_DONE = new Button("Done");
@@ -459,7 +486,6 @@ public class Main extends Application {
         BTN_RM.getStyleClass().add("control-btn");
         BTN_DONE.getStyleClass().add("control-btn");
         BTN_DONE.setStyle("-fx-background-color: #1A365D; -fx-text-fill: #99CCFF; -fx-min-width: 110px;");
-        
 
         BTN_RM.setStyle("-fx-background-color: #241414; -fx-text-fill: #FF6666;");
 
@@ -484,7 +510,7 @@ public class Main extends Application {
                 this.select = raw.get(selectedIndex);
                 titleLabel.setText(this.select.getName());
                 authorLabel.setText("Channel: " + this.select.getAuthor());
-                
+
                 if (this.select.getIMG() != null && !this.select.getIMG().isEmpty()) {
                     preview.setImage(new Image(this.select.getIMG(), true));
                 }
@@ -494,23 +520,23 @@ public class Main extends Application {
         BTN_ADD.setOnAction(event -> {
             if (this.select != null) {
                 if (!this.raw.contains(this.select)) {
-                    this.raw.add(this.select); 
+                    this.raw.add(this.select);
                     outputText.setText(String.format("Added: %s", this.select.getName()));
-                    outputText.setTextFill(Color.web("#1DB954")); // Green feedback
+                    outputText.setTextFill(Color.web("#1DB954"));
                 } else {
                     outputText.setText("Already exist....");
-                    outputText.setTextFill(Color.web("#FFCC00")); // Yellow warning
+                    outputText.setTextFill(Color.web("#FFCC00"));
                 }
             } else {
                 outputText.setText("PICK A SONG BRO");
-                outputText.setTextFill(Color.web("#FF5555")); // Red error
+                outputText.setTextFill(Color.web("#FF5555"));
             }
         });
 
         BTN_RM.setOnAction(event -> {
             if (this.select != null) {
                 if (this.raw.contains(this.select)) {
-                    this.raw.remove(this.select); 
+                    this.raw.remove(this.select);
                     outputText.setText(String.format("Removed: %s", this.select.getName()));
                     outputText.setTextFill(Color.web("#FF5555"));
                 } else {
@@ -523,9 +549,7 @@ public class Main extends Application {
             }
         });
 
-        BTN_DONE.setOnAction(event -> {
-            stage.close();
-        });
+        BTN_DONE.setOnAction(event -> stage.close());
 
         ScrollPane scrollPane = new ScrollPane(root);
         scrollPane.setFitToWidth(true);
@@ -533,8 +557,6 @@ public class Main extends Application {
         scrollPane.setStyle("-fx-background-color: #121212; -fx-background: #121212;");
 
         Scene scene = new Scene(scrollPane, 1020, 720);
-
-
         scene.getStylesheets().add(Setting.class.getResource(Setting.CSS).toExternalForm());
 
         stage.setScene(scene);

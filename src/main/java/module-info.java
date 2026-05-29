@@ -6,5 +6,6 @@ module dynoplayer {
     requires org.jsoup;
 
     opens dynoplayer to javafx.fxml;
+
     exports dynoplayer;
 }
