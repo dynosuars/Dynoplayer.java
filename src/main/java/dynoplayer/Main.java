@@ -319,7 +319,7 @@ public class Main extends Application {
         this.musics.addAll(Util.init(Setting.Cache));
 
         try {
-            var imageStream = Setting.class.getResourceAsStream(Setting.default_img);
+            var imageStream = Setting.class.getResourceAsStream(Setting.icon);
             if (imageStream != null) {
                 Image backgroundImage = new Image(imageStream);
 

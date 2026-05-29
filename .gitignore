@@ -4,8 +4,11 @@ target/
 *.war
 *.ear
 
+bin/
 .vscode/
 .idea/
+.releases/
+*.zip
 *.iml
 .classpath
 .project

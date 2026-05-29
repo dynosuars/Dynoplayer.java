@@ -9,4 +9,5 @@ public class Setting {
     public static final String Cache = download_dir + ".dynocache";
     public static final String default_img = "/static/image/new-york-skyline-at-night-1476795446tYD.jpg";
     public static final String CSS = "/static/style/style.css";
+    public static final String icon = "/static/image/Dynoplayer.ico";
 }

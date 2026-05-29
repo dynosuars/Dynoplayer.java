@@ -50,8 +50,7 @@ public class Player {
             }
 
 
-            String URI = "file://" + file.getAbsolutePath();
-            Media media = new Media(URI);
+            Media media = new Media(file.toURI().toString());
             mp = new MediaPlayer(media);
 
             // Volume

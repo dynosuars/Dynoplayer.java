@@ -20,6 +20,20 @@ public class Music extends Playable {
         this.file = video.getID() + ".wav";
     }
 
+    private static String resolveYtDlpExecutable() {
+        File bundledWindowsExecutable = new File("bin", "yt-dlp.exe");
+        if (bundledWindowsExecutable.exists()) {
+            return bundledWindowsExecutable.getPath();
+        }
+
+        File bundledUnixExecutable = new File("bin", "yt-dlp");
+        if (bundledUnixExecutable.exists()) {
+            return bundledUnixExecutable.getPath();
+        }
+
+        return "yt-dlp";
+    }
+
     /**
      * The "FUNCTION" used to download video. This is static because I lowkey don't
      * know why.
@@ -38,7 +52,7 @@ public class Music extends Playable {
             File expectedAudio = new File(downloadDir, video.getID() + ".wav");
 
             ProcessBuilder downloader = new ProcessBuilder(
-                    "yt-dlp", "-x",
+                    resolveYtDlpExecutable(), "-x",
                     "--audio-format", "wav",
                     "--audio-quality", "0",
                     "-P",
@@ -53,7 +67,7 @@ public class Music extends Playable {
 
             if (code == 0 || expectedAudio.exists()) {
                 Util.saveCache(video);
-                return code == 0 ? 0 : code;
+                return 0;
             } else {
                 System.out.println("TWIN, YOUR SHIT IS NOT DOWNLOADED " + code);
                 return code;
