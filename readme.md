@@ -1,6 +1,6 @@
 # Dynoplayer
 
-A project that was ORIGINALLY planned to be written in C++ but since I need my final project, I wrote it in Java (Prob my worst decision made).
+This is a Java focused project for my UAlbany class.
 Anyways, this project RELIES on Youtube and (YT-DLP)[https://github.com/yt-dlp/yt-dlp] (I love them VERY much)
 
 ## Overview
